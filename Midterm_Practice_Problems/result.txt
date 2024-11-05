@@ -1,0 +1,4 @@
+Sum: 65
+Average: 16.25
+Max: 30
+Min: 5

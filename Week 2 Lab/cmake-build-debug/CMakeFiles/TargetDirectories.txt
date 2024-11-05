@@ -1,0 +1,3 @@
+C:/Users/Curry/OneDrive/Desktop/C Course/Week 2 Lab/cmake-build-debug/CMakeFiles/Week_2_Lab.dir
+C:/Users/Curry/OneDrive/Desktop/C Course/Week 2 Lab/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/Curry/OneDrive/Desktop/C Course/Week 2 Lab/cmake-build-debug/CMakeFiles/rebuild_cache.dir

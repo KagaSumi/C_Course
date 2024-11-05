@@ -1,0 +1,7 @@
+# ninja log v6
+17	85	7476075658107350	CMakeFiles/Lab_2.dir/Basic.c.obj	1babb937f22109c3
+85	171	7476075658786658	Lab_2.exe	dd3b27ee38483ba7
+3	69	7476080961013415	CMakeFiles/Lab_2.dir/datatypes.c.obj	603a38a54423fb7e
+10	80	7476086220472768	CMakeFiles/Lab_2.dir/strings.c.obj	130fc240352a7907
+9	87	7476093881031623	CMakeFiles/Lab_2.dir/Combdtype.c.obj	ac591d0b6e644e09
+16	83	7476093995614429	CMakeFiles/Lab_2.dir/Combdtype.c.obj	ac591d0b6e644e09

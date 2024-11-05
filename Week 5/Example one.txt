@@ -1,0 +1,15 @@
+```c
+// from the Matrix class  
+void scale(int factor) {  
+for (int r = 0; r < numRows(); r++)  //O(n)
+	for (int c = 0; c < numCols(); c++)  //O(N)
+		iCells[r][c] *= factor;  // o(1)
+}
+// total = N * N * 1 = N**2 + 1 ~ O(N^2)
+
+```
+numRows() returns number of rows in the matrix iCells  
+numCols() returns number of columns in the matrix iCells  
+Assume iCells is an N by N square matrix.  
+Assume numRows and numCols are O(1)
+
