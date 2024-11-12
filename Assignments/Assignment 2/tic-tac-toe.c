@@ -61,7 +61,7 @@ char** create_board(){
         board[i] = malloc(sizeof(char)*3);
         if (!board[i]){
             perror("Error Allocating Memory");
-            free_memory(board, 3);
+            free_memory(board, i);
             exit(1);
         }
         memset(board[i], '-', 3);//Load - into subarray
