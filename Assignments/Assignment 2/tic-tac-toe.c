@@ -19,8 +19,7 @@ typedef struct {
     time_t timestamp;
 }Move;
 
-// Function Prototypes
-
+// ---------- Function Prototypes -------------
 // Board and Board Clean up
 void free_memory(char **matrix, int size);
 char** create_board();
@@ -52,6 +51,7 @@ void free_memory(char **matrix, int size){
 }
 
 char** create_board(){
+    //Since it is Tic-Tac-Toe its a 3x3 grid
     char** board = malloc(sizeof(char*)*3);
     if (!board){
         perror("Error allocating memory");
@@ -64,7 +64,7 @@ char** create_board(){
             free_memory(board, 3);
             exit(1);
         }
-        memset(board[i], '-',3);//Load - into subarray
+        memset(board[i], '-', 3);//Load - into subarray
     }
     return board;
 }
@@ -82,8 +82,7 @@ void displayBoard (char **board){
 
 // ------- Logging ---------
 void logMove(FILE *file, Move move){
-    //Log Move
-    char time_buffer[100];
+    char time_buffer[100];//Buffer for timestamp (shouldn't be overflowing in the next couple of centuries)
     struct tm *time_info = localtime(&move.timestamp);
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", time_info);
     fprintf(file,"Player %c placed at Row: %d, Col: %d, Time: [%s]\n",move.id,move.row,move.cols,time_buffer);
@@ -93,7 +92,7 @@ void logMove(FILE *file, Move move){
 void logWin(FILE *file, Player player, int Draw){
     if (Draw){ //1 == Draw, 0 = Player Wins
         printf("Draw!\n");
-        fprintf(file,"Draw");
+        fprintf(file,"Draw\n");
         return;
     }
     printf("Player %c Wins!\n", player.id);
@@ -111,21 +110,18 @@ int isValidMove(char ** board, int row, int col){
 Move makeMove(char **board, Player *player, int row, int col){
     board[row][col] = player->id;
     player->move_count++;  // Increment the move counter on the original player struct
-    time_t current_time = time(NULL);
-    Move move = {player->id, row, col, current_time};
+    Move move = {player->id, row, col, time(NULL)};
     return move;
 }
 
 // ------------ Game Logic --------------
 int checkState(char **board, Player player, int * draw){
-    //Return 1 when someone wins/Draw
-    //Return 0 when no wins
     if (checkWin(board,player)) return 1; //Player Won Game
     else if (player.id == 'X' && player.move_count == 5){ //Draw Condition
         *draw = 1; // Update Draw Flag
-        return 1;
+        return 1; //Draw
     }
-    return 0;
+    return 0; //No Win on Board
 }
 
 int checkRow(char** board,Player player, int row){
@@ -181,23 +177,26 @@ void endGame(char **board, FILE * file){
     return;
 }
 
-int Play(char **board, FILE *file, Player *player, int * draw) {  // Change to Player *player
+int Play(char **board, FILE *file, Player *player, int * draw) {
     int row, col;
     int valid = 0, win = 0;
-    Move tmp_move;
-    while(valid == 0){
+
+    while(valid == 0){ //Loop until Player gives Valid Move
         printf("Player %c, enter your move (row and column): ", player->id);
         scanf("%d %d", &row, &col);
+        
+        //Adjust for index offset
         row--;
         col--;
+
         valid = isValidMove(board, row, col);
-        if (!valid){
+        if (!isValidMove(board, row, col)){
             printf("Invalid Move, please try again\n");
         }
     }
+
     printf("\n");
-    tmp_move = makeMove(board, player, row, col);
-    logMove(file, tmp_move);
+    logMove(file, makeMove(board, player, row, col)); //Make move then log move;
     if (checkState(board, *player, draw) == 1) return 1;
     return 0;
 }
