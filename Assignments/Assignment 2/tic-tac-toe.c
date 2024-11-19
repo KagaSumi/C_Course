@@ -9,7 +9,6 @@
 typedef struct {
     char id;
     int move_count;
-
 }Player;
 
 typedef struct {
