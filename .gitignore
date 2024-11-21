@@ -52,5 +52,4 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
-Lab 6/test
-Lab 7/test
+*/test
