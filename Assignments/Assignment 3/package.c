@@ -19,11 +19,13 @@ typedef struct node {
 // Prototypes
 Node* create_node(Package value);
 void freeNode(Node * head);
-void log_error(FILE * log, int ID, const char *priority);
-void read_file(FILE *file, FILE *log, Package **standard, Package **urgent, int *size_standard, int *size_urgent);
+void log_error_with_line(FILE* log, int line, int ID, const char* priority);
+int read_file(FILE* file, FILE* log, Package** standard, Package** urgent, int* size_standard, int* size_urgent);
 int compare_by_time(const void *a, const void *b);
 void parse_collisions(Node* standard_head, Node* urgent_head);
 void print_list(Node *head);
+void resize_array(Package** array, int* capacity);
+int is_valid_priority(const char* priority);
 
 // Function to free all nodes in the list
 void freeNode(Node* head) {
@@ -84,124 +86,118 @@ void print_list(Node *head) {
 }
 
 // Function to log errors
-void log_error(FILE *log, int ID, const char *priority) {
+void log_error_with_line(FILE *log,int line, int ID, const char *priority) {
     char time_buffer[100]; // Buffer for timestamp (shouldn't be overflowing in the next couple of centuries)
     time_t raw_time = time(NULL);
     struct tm *time_info = localtime(&raw_time);
     strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%d %H:%M:%S", time_info);
     if (priority == NULL) { // Duplicate ID
-        printf("Package ID %d: Skipped (Duplicate ID)\n", ID);
-        fprintf(log, "[%s] Error: Duplicate Tracking ID for package ID %d\n", time_buffer, ID);
+        printf("Line Number: %d Package ID %d: Skipped (Duplicate ID)\n",line, ID);
+        fprintf(log, "[%s] Error: Duplicate Tracking ID for package ID %d Line#%d\n", time_buffer, ID,line);
         return;
     }
 
     // Priority invalid
-    printf("Package ID %d: Skipped (Invalid Priority)\n", ID);
-    fprintf(log, "[%s] Error: Invalid Priority \"%s\" for package ID %d\n", time_buffer, priority, ID);
+    printf("Line Number: %d Package ID %d: Skipped (Invalid Priority)\n",line, ID);
+    fprintf(log, "[%s] Error: Invalid Priority \"%s\" for package ID %d Line# %d\n", time_buffer, priority, ID, line);
     return;
 }
-
-// Function to read package data from a file
-void read_file(FILE *file, FILE *log, Package **standard, Package **urgent, int *size_standard, int *size_urgent) {
-    int id_size = 0, id_arr_size = 2, id, hour, minutes;
-    char buffer[10];
-    int *id_arr = malloc(sizeof(int) * id_arr_size);
-    if (!id_arr) {
-        perror("Error allocating memory");
+void resize_array(Package** array, int* capacity) {
+    *capacity *= 2;
+    Package* temp = realloc(*array, sizeof(Package) * (*capacity));
+    if (!temp) {
+        perror("Error reallocating memory");
+        free(*array);
         exit(1);
     }
+    *array = temp;
+}
+int is_valid_priority(const char* priority) {
+    const char* valid_priorities[] = {"Urgent", "Standard"};
+    for (int i = 0; i < sizeof(valid_priorities) / sizeof(valid_priorities[0]); i++) {
+        if (strcmp(priority, valid_priorities[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
 
-    int standard_capacity = 10; // Initial capacity for standard packages
-    int urgent_capacity = 10;   // Initial capacity for urgent packages
 
-    // Allocate initial memory for standard and urgent packages
+// Function to read package data from a file
+int read_file(FILE* file, FILE* log, Package** standard, Package** urgent, int* size_standard, int* size_urgent) {
+    int id_size = 0, id_arr_size = 2, id, hour, minutes;
+    char buffer[10];
+    int* id_arr = malloc(sizeof(int) * id_arr_size);
+    if (!id_arr) {
+        perror("Error allocating memory for ID array");
+        return -1;
+    }
+
+    int standard_capacity = 10, urgent_capacity = 10;
     *standard = malloc(sizeof(Package) * standard_capacity);
     *urgent = malloc(sizeof(Package) * urgent_capacity);
     if (!(*standard) || !(*urgent)) {
         perror("Error allocating memory for packages");
         free(id_arr);
-        exit(1);
+        return -1;
     }
 
+    int line_number = 0;
     while (fscanf(file, "%d %s %d:%d", &id, buffer, &hour, &minutes) != EOF) {
-        // Check for duplicate IDs
+        line_number++;
+
+        // Check for duplicate ID
         int duplicate = 0;
         for (int i = 0; i < id_size; i++) {
             if (id == id_arr[i]) {
-                log_error(log, id, NULL);
+                log_error_with_line(log, line_number, id, NULL);
                 duplicate = 1;
+                break;
             }
         }
-        
-        // Check if invalid priority level
-        if (strcmp(buffer, "Urgent") != 0 && strcmp(buffer, "Standard") != 0) {
-            log_error(log, id, buffer);
+        if (duplicate) continue;
+
+        // Validate priority
+        if (!is_valid_priority(buffer)) {
+            log_error_with_line(log, line_number, id, buffer);
+            continue;
+        }
+
+        // Add ID to id_arr
+        if (id_size == id_arr_size) {
+            id_arr_size *= 2;
+            int* tmp = realloc(id_arr, sizeof(int) * id_arr_size);
+            if (!tmp) {
+                perror("Error reallocating memory for ID array");
+                free(id_arr);
+                free(*standard);
+                free(*urgent);
+                return -1;
+            }
+            id_arr = tmp;
+        }
+        id_arr[id_size++] = id;
+
+        // Add package to the appropriate list
+        Package pkg = {id, "", hour, minutes};
+        strncpy(pkg.priority, buffer, sizeof(pkg.priority));
+        if (strcmp(buffer, "Urgent") == 0) {
+            if (*size_urgent == urgent_capacity) {
+                resize_array(urgent, &urgent_capacity);
+            }
+            (*urgent)[(*size_urgent)++] = pkg;
         } else {
-            // This is now valid, so we will update the ID Array and add into the correct package list
-            if (id_size == id_arr_size) {
-                id_arr_size *= 2;
-                int *tmp = realloc(id_arr, sizeof(int) * id_arr_size);
-                if (!tmp) {
-                    perror("Error reallocating memory");
-                    free(id_arr);
-                    free(*standard);
-                    free(*urgent);
-                    exit(1);
-                }
-                id_arr = tmp;
+            if (*size_standard == standard_capacity) {
+                resize_array(standard, &standard_capacity);
             }
-            id_arr[id_size++] = id;
-
-            // Process package based on priority
-            if (strcmp(buffer, "Urgent") == 0) {
-                // Expand urgent array if necessary
-                if (*size_urgent == urgent_capacity) {
-                    urgent_capacity *= 2;
-                    Package *tmp = realloc(*urgent, sizeof(Package) * urgent_capacity);
-                    if (!tmp) {
-                        perror("Error reallocating memory for urgent packages");
-                        free(id_arr);
-                        free(*standard);
-                        free(*urgent);
-                        exit(1);
-                    }
-                    *urgent = tmp;
-                }
-
-                // Add to urgent array
-                (*urgent)[*size_urgent].trackingID = id;
-                strncpy((*urgent)[*size_urgent].priority, buffer, sizeof((*urgent)[*size_urgent].priority));
-                (*urgent)[*size_urgent].hour = hour;
-                (*urgent)[*size_urgent].minute = minutes;
-                (*size_urgent)++;
-            } else { // Standard Package
-                // Expand standard array if necessary
-                if (*size_standard == standard_capacity) {
-                    standard_capacity *= 2;
-                    Package *tmp = realloc(*standard, sizeof(Package) * standard_capacity);
-                    if (!tmp) {
-                        perror("Error reallocating memory for standard packages");
-                        free(id_arr);
-                        free(*standard);
-                        free(*urgent);
-                        exit(1);
-                    }
-                    *standard = tmp;
-                }
-
-                // Add to standard array
-                (*standard)[*size_standard].trackingID = id;
-                strncpy((*standard)[*size_standard].priority, buffer, sizeof((*standard)[*size_standard].priority));
-                (*standard)[*size_standard].hour = hour;
-                (*standard)[*size_standard].minute = minutes;
-                (*size_standard)++;
-            }
+            (*standard)[(*size_standard)++] = pkg;
         }
     }
-    free(id_arr); // Clean up allocated memory
+
+    free(id_arr);
+    return 0;
 }
 
-// Comparison function for sorting by delivery time
 int compare_by_time(const void *a, const void *b) {
     Package *packageA = (Package *)a;
     Package *packageB = (Package *)b;
