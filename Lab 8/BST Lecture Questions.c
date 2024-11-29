@@ -37,20 +37,38 @@ void inOrder(Node* root) {
     }
 }
 
+void freeTree(Node* root) {
+    if (root != NULL) {
+        freeTree(root->left);
+        freeTree(root->right);
+        free(root);
+    }
+}
 int find_height(Node* root){
     int height_l = 0;
     int height_r = 0;
 
-    height_l += (root->left != NULL) ? find_height(root->left) + 1:0;
-    height_r += (root->right != NULL) ? find_height(root->right) + 1:0;
+    height_l += (root->left != NULL) ? find_height(root->left):0;
+    height_r += (root->right != NULL) ? find_height(root->right):0;
 
     int height = (height_l>height_r)?height_l:height_r;
-    return height;
+    return height + 1;
 }
 
-int isbalanced(Node* root){
-    return (find_height(root->left) != find_height(root->right))? 0: 1;//unbalanced : Balanced
+int isbalanced(Node* root) {
+    //TODO Debug
+    if (root == NULL) return 1; // An empty tree is balanced.
+
+    int left_height = find_height(root->left);
+    int right_height = find_height(root->right);
+
+    // Check if the current node is balanced
+    int current_balance = abs(left_height - right_height) <= 1;
+
+    // Recursively check if the left and right subtrees are balanced
+    return current_balance && isbalanced(root->left) && isbalanced(root->right);
 }
+
 
 int main() {
     Node* root = NULL;
@@ -62,6 +80,7 @@ int main() {
     insert(root, 30);
     insert(root, 25);
     insert(root, 35);
+    insert(root, 35);
 
     printf("In-Order Traversal: ");
     inOrder(root);
@@ -71,5 +90,6 @@ int main() {
     printf("Height of the tree:%d\n",height);
     printf("This tree is %s\n",(isbalanced(root))?"balanced":"unbalanced");
     
+//    freeTree(root);
     return 0;
 }
